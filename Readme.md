@@ -70,9 +70,6 @@ You can download the sample CSV file to test the API:
 You can test the API using the Postman collection:
 [Holiday API Postman Collection](https://www.postman.com/supply-architect-71547258/federal-holiday/collection/nn00fvm/federal-holiday-apis?action=share&creator=38942471)
 
-## Code Coverage
-
-![Screenshot 2025-02-11 021531.png](../../OneDrive/Pictures/Screenshots/Screenshot%202025-02-11%20021531.png)
 
 ## Author
 **Tushar Sinha**
