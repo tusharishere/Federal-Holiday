@@ -1,0 +1,343 @@
+
+
+
+<!DOCTYPE html>
+<html id="htmlId">
+<head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"> 
+  <title>Coverage Report > FederalHolidayService</title>
+  <style type="text/css">
+    @import "../../css/coverage.css";
+    @import "../../css/idea.min.css";
+  </style>
+  <script type="text/javascript" src="../../js/highlight.min.js"></script>
+  <script type="text/javascript" src="../../js/highlightjs-line-numbers.min.js"></script>
+</head>
+
+<body>
+<div class="content">
+<div class="breadCrumbs">
+Current scope:     <a href="../../index.html">all classes</a>
+    <span class="separator">|</span>
+    <a href="../index.html">com.holiday.service.service</a>
+</div>
+
+<h1>Coverage Summary for Class: FederalHolidayService (com.holiday.service.service)</h1>
+
+<table class="coverageStats">
+<tr>
+  <th class="name">Class</th>
+<th class="coverageStat 
+">
+  Class, %
+</th>
+<th class="coverageStat 
+">
+  Method, %
+</th>
+<th class="coverageStat 
+">
+  Branch, %
+</th>
+<th class="coverageStat 
+">
+  Line, %
+</th>
+</tr>
+<tr>
+  <td class="name">FederalHolidayService</td>
+<td class="coverageStat">
+  <span class="percent">
+    100%
+  </span>
+  <span class="absValue">
+    (1/1)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    50%
+  </span>
+  <span class="absValue">
+    (5/10)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    0%
+  </span>
+  <span class="absValue">
+    (0/38)
+  </span>
+</td>
+<td class="coverageStat">
+  <span class="percent">
+    16.3%
+  </span>
+  <span class="absValue">
+    (15/92)
+  </span>
+</td>
+</tr>
+
+</table>
+
+<br/>
+<br/>
+
+
+<pre>
+<code class="sourceCode" id="sourceCode">&nbsp;package com.holiday.service.service;
+&nbsp;
+&nbsp;import com.holiday.entity.Country;
+&nbsp;import com.holiday.entity.FederalHoliday;
+&nbsp;import com.holiday.exception.DuplicateHolidayException;
+&nbsp;import com.holiday.repository.CountryRepository;
+&nbsp;import com.holiday.repository.FederalHolidayRepository;
+&nbsp;import com.holiday.service.Impl.FederalServiceImpl;
+&nbsp;import com.holiday.utils.DateUtilService;
+&nbsp;import lombok.RequiredArgsConstructor;
+&nbsp;import org.springframework.data.domain.Page;
+&nbsp;import org.springframework.data.domain.Pageable;
+&nbsp;import org.springframework.http.ResponseEntity;
+&nbsp;import org.springframework.stereotype.Service;
+&nbsp;import org.springframework.transaction.annotation.Transactional;
+&nbsp;import org.springframework.web.multipart.MultipartFile;
+&nbsp;
+&nbsp;import java.io.BufferedReader;
+&nbsp;import java.io.IOException;
+&nbsp;import java.io.InputStreamReader;
+&nbsp;import java.nio.charset.StandardCharsets;
+&nbsp;import java.time.LocalDate;
+&nbsp;import java.time.format.DateTimeFormatter;
+&nbsp;import java.util.*;
+&nbsp;
+&nbsp;@Service
+&nbsp;@RequiredArgsConstructor
+&nbsp;public class FederalHolidayService implements FederalServiceImpl {
+&nbsp;
+&nbsp;    private final FederalHolidayRepository federalHolidayRepository;
+&nbsp;    private final CountryRepository countryRepository;
+&nbsp;    private final DateUtilService dateUtilService;
+&nbsp;
+&nbsp;
+&nbsp;    public Page&lt;FederalHoliday&gt; getHolidaysByCountry(String countryCode, Pageable pageable) {
+<b class="fc">&nbsp;        return federalHolidayRepository.findByCountry_CountryCode(countryCode,pageable);</b>
+&nbsp;    }
+&nbsp;    @Transactional
+&nbsp;    public void deleteHolidaysByCountry(String countryCode) {
+&nbsp;
+<b class="fc">&nbsp;        federalHolidayRepository.deleteByCountryCode(countryCode);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public List&lt;FederalHoliday&gt; getHolidays() {
+<b class="fc">&nbsp;        return federalHolidayRepository.findAll();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public FederalHoliday getHolidayById(Long id) {
+<b class="fc">&nbsp;        return federalHolidayRepository.findById(id)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Holiday not found&quot;));</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Transactional
+&nbsp;    public FederalHoliday addHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
+<b class="fc">&nbsp;        Country country = countryRepository.findById(countryCode)</b>
+<b class="fc">&nbsp;                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Invalid country code&quot;));</b>
+&nbsp;
+<b class="fc">&nbsp;        FederalHoliday holiday = new FederalHoliday();</b>
+<b class="fc">&nbsp;        holiday.setCountry(country);</b>
+<b class="fc">&nbsp;        holiday.setHolidayName(holidayName);</b>
+<b class="fc">&nbsp;        holiday.setHolidayDate(holidayDate);</b>
+<b class="fc">&nbsp;        holiday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));</b>
+&nbsp;
+&nbsp;        try {
+<b class="fc">&nbsp;            return federalHolidayRepository.save(holiday);</b>
+&nbsp;        } catch (Exception e) {
+<b class="fc">&nbsp;            System.out.println(&quot;Error&quot;);</b>
+<b class="fc">&nbsp;            throw new DuplicateHolidayException(&quot;Error: A holiday with the same name already exists for this country.&quot;);</b>
+&nbsp;        }
+&nbsp;    }
+&nbsp;
+&nbsp;
+&nbsp;    @Transactional
+&nbsp;    public FederalHoliday updateHoliday(Long id, String holidayName, LocalDate holidayDate) {
+<b class="nc">&nbsp;        FederalHoliday existingHoliday = federalHolidayRepository.findById(id)</b>
+<b class="nc">&nbsp;                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Holiday not found&quot;));</b>
+&nbsp;
+<b class="nc">&nbsp;        existingHoliday.setHolidayName(holidayName);</b>
+<b class="nc">&nbsp;        existingHoliday.setHolidayDate(holidayDate);</b>
+<b class="nc">&nbsp;        existingHoliday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));</b>
+&nbsp;
+<b class="nc">&nbsp;        return federalHolidayRepository.save(existingHoliday);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    @Transactional
+&nbsp;    public void deleteHoliday(Long id) {
+<b class="nc">&nbsp;        if (!federalHolidayRepository.existsById(id)) {</b>
+<b class="nc">&nbsp;            throw new IllegalArgumentException(&quot;Holiday not found&quot;);</b>
+&nbsp;        }
+<b class="nc">&nbsp;        federalHolidayRepository.deleteById(id);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; processMultipleCsvFiles(List&lt;MultipartFile&gt; files) {
+<b class="nc">&nbsp;        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</b>
+<b class="nc">&nbsp;        List&lt;Map&lt;String, Object&gt;&gt; fileResults = new ArrayList&lt;&gt;();</b>
+&nbsp;
+<b class="nc">&nbsp;        for (MultipartFile file : files) {</b>
+<b class="nc">&nbsp;            Map&lt;String, Object&gt; result = processSingleCsvFile(file);</b>
+<b class="nc">&nbsp;            fileResults.add(Map.of(&quot;file_name&quot;, Objects.requireNonNull(file.getOriginalFilename()), &quot;result&quot;, result));</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        response.put(&quot;files_processed&quot;, fileResults);</b>
+<b class="nc">&nbsp;        return ResponseEntity.ok(response);</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private Map&lt;String, Object&gt; processSingleCsvFile(MultipartFile file) {
+<b class="nc">&nbsp;        Map&lt;String, Object&gt; result = new HashMap&lt;&gt;();</b>
+&nbsp;
+<b class="nc">&nbsp;        if (file.isEmpty()) {</b>
+<b class="nc">&nbsp;            result.put(&quot;error&quot;, &quot;CSV file is empty.&quot;);</b>
+<b class="nc">&nbsp;            return result;</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        List&lt;FederalHoliday&gt; holidayList = new ArrayList&lt;&gt;();</b>
+<b class="nc">&nbsp;        List&lt;String&gt; errorRows = new ArrayList&lt;&gt;();</b>
+<b class="nc">&nbsp;        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd&quot;);</b>
+&nbsp;
+<b class="nc">&nbsp;        try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {</b>
+<b class="nc">&nbsp;            validateSingleCountryCode(br);</b>
+&nbsp;
+&nbsp;            String line;
+<b class="nc">&nbsp;            Map&lt;String, Integer&gt; columnIndexMap = new HashMap&lt;&gt;();</b>
+<b class="nc">&nbsp;            boolean firstLine = true;</b>
+&nbsp;
+<b class="nc">&nbsp;            while ((line = br.readLine()) != null) {</b>
+<b class="nc">&nbsp;                String[] data = line.split(&quot;,&quot;);</b>
+&nbsp;
+<b class="nc">&nbsp;                if (firstLine) {</b>
+<b class="nc">&nbsp;                    for (int i = 0; i &lt; data.length; i++) {</b>
+<b class="nc">&nbsp;                        columnIndexMap.put(data[i].trim().toLowerCase(), i);</b>
+&nbsp;                    }
+<b class="nc">&nbsp;                    firstLine = false;</b>
+&nbsp;                    continue;
+&nbsp;                }
+&nbsp;
+&nbsp;                try {
+<b class="nc">&nbsp;                    if (!columnIndexMap.containsKey(&quot;country_code&quot;) ||</b>
+<b class="nc">&nbsp;                            !columnIndexMap.containsKey(&quot;holiday_name&quot;) ||</b>
+<b class="nc">&nbsp;                            !columnIndexMap.containsKey(&quot;holiday_date&quot;)) {</b>
+<b class="nc">&nbsp;                        throw new IllegalArgumentException(&quot;Missing required columns in CSV.&quot;);</b>
+&nbsp;                    }
+&nbsp;
+<b class="nc">&nbsp;                    String countryCode = data[columnIndexMap.get(&quot;country_code&quot;)].trim();</b>
+<b class="nc">&nbsp;                    String holidayName = data[columnIndexMap.get(&quot;holiday_name&quot;)].trim();</b>
+<b class="nc">&nbsp;                    String holidayDateStr = data[columnIndexMap.get(&quot;holiday_date&quot;)].trim();</b>
+&nbsp;
+<b class="nc">&nbsp;                    if (countryCode.isEmpty() || holidayName.isEmpty() || holidayDateStr.isEmpty()) {</b>
+<b class="nc">&nbsp;                        throw new IllegalArgumentException(&quot;Empty values detected in required fields.&quot;);</b>
+&nbsp;                    }
+&nbsp;
+<b class="nc">&nbsp;                    LocalDate holidayDate = LocalDate.parse(holidayDateStr, formatter);</b>
+&nbsp;
+<b class="nc">&nbsp;                    Country country = countryRepository.findByCountryCode(countryCode);</b>
+<b class="nc">&nbsp;                    if (country == null) {</b>
+<b class="nc">&nbsp;                        throw new IllegalArgumentException(&quot;Invalid country code: &quot; + countryCode);</b>
+&nbsp;                    }
+&nbsp;
+<b class="nc">&nbsp;                    FederalHoliday holiday = new FederalHoliday();</b>
+<b class="nc">&nbsp;                    holiday.setCountry(country);</b>
+<b class="nc">&nbsp;                    holiday.setHolidayDate(holidayDate);</b>
+<b class="nc">&nbsp;                    holiday.setHolidayName(holidayName);</b>
+<b class="nc">&nbsp;                    holiday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));</b>
+&nbsp;
+&nbsp;                    try {
+<b class="nc">&nbsp;                        federalHolidayRepository.save(holiday);</b>
+<b class="nc">&nbsp;                        holidayList.add(holiday);</b>
+&nbsp;                    } catch (Exception dbException) {
+<b class="nc">&nbsp;                        errorRows.add(&quot;Database error for row: &quot; + line + &quot; | Reason: &quot; + dbException.getMessage());</b>
+&nbsp;                    }
+&nbsp;
+&nbsp;                } catch (Exception e) {
+<b class="nc">&nbsp;                    errorRows.add(&quot;Error processing row: &quot; + line + &quot; | Reason: &quot; + e.getMessage());</b>
+&nbsp;                }
+&nbsp;            }
+&nbsp;
+<b class="nc">&nbsp;            result.put(&quot;uploaded_count&quot;, holidayList.size());</b>
+<b class="nc">&nbsp;            result.put(&quot;failed_rows&quot;, errorRows);</b>
+&nbsp;
+&nbsp;        } catch (Exception e) {
+<b class="nc">&nbsp;            result.put(&quot;error&quot;, &quot;Error processing CSV file: &quot; + e.getMessage());</b>
+&nbsp;        }
+&nbsp;
+<b class="nc">&nbsp;        return result;</b>
+&nbsp;    }
+&nbsp;
+&nbsp;    private void validateSingleCountryCode(BufferedReader br) throws IOException {
+<b class="nc">&nbsp;        Set&lt;String&gt; countryCodes = new HashSet&lt;&gt;();</b>
+&nbsp;        String line;
+<b class="nc">&nbsp;        boolean firstLine = true;</b>
+<b class="nc">&nbsp;        Map&lt;String, Integer&gt; columnIndexMap = new HashMap&lt;&gt;();</b>
+&nbsp;
+&nbsp;
+<b class="nc">&nbsp;        br.mark(10 * 1024); // Mark buffer limit (10KB)</b>
+&nbsp;
+<b class="nc">&nbsp;        while ((line = br.readLine()) != null) {</b>
+<b class="nc">&nbsp;            String[] data = line.split(&quot;,&quot;);</b>
+&nbsp;
+<b class="nc">&nbsp;            if (firstLine) {</b>
+&nbsp;                // Identify column indexes dynamically
+<b class="nc">&nbsp;                for (int i = 0; i &lt; data.length; i++) {</b>
+<b class="nc">&nbsp;                    columnIndexMap.put(data[i].trim().toLowerCase(), i);</b>
+&nbsp;                }
+&nbsp;
+<b class="nc">&nbsp;                if (!columnIndexMap.containsKey(&quot;country_code&quot;)) {</b>
+<b class="nc">&nbsp;                    throw new IllegalArgumentException(&quot;CSV file is missing the required column: country_code&quot;);</b>
+&nbsp;                }
+&nbsp;
+<b class="nc">&nbsp;                firstLine = false;</b>
+&nbsp;                continue;
+&nbsp;            }
+&nbsp;
+&nbsp;
+<b class="nc">&nbsp;            String countryCode = data[columnIndexMap.get(&quot;country_code&quot;)].trim();</b>
+<b class="nc">&nbsp;            if (!countryCode.isEmpty()) {</b>
+<b class="nc">&nbsp;                countryCodes.add(countryCode);</b>
+&nbsp;            }
+&nbsp;
+<b class="nc">&nbsp;            if (countryCodes.size() &gt; 1) {</b>
+<b class="nc">&nbsp;                throw new IllegalArgumentException(&quot;CSV file contains multiple country codes. Only one country is allowed per file.&quot;);</b>
+&nbsp;            }
+&nbsp;        }
+&nbsp;
+&nbsp;
+<b class="nc">&nbsp;        br.reset();</b>
+&nbsp;    }
+&nbsp;
+&nbsp;}
+</code>
+</pre>
+</div>
+
+<script type="text/javascript">
+(function() {
+    var msie = false, msie9 = false;
+    /*@cc_on
+      msie = true;
+      @if (@_jscript_version >= 9)
+        msie9 = true;
+      @end
+    @*/
+
+    if (!msie || msie && msie9) {
+      hljs.highlightAll()
+      hljs.initLineNumbersOnLoad();
+    }
+})();
+</script>
+
+<div class="footer">
+    
+    <div style="float:right;">generated on 2025-02-11 02:14</div>
+</div>
+</body>
+</html>
