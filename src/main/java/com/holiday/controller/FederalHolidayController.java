@@ -2,6 +2,7 @@ package com.holiday.controller;
 
 import com.holiday.entity.FederalHoliday;
 import com.holiday.service.service.FederalHolidayService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,7 @@ public class FederalHolidayController {
     private final FederalHolidayService federalHolidayService;
 
 
-    @GetMapping("/{countryCode}")
+    @GetMapping(value = "/{countryCode}")
     public ResponseEntity<Page<FederalHoliday>> getHolidaysByCountry(@PathVariable String countryCode, Pageable pageable) {
         return ResponseEntity.ok(federalHolidayService.getHolidaysByCountry(countryCode,pageable));
     }
@@ -35,20 +36,27 @@ public class FederalHolidayController {
         return new ResponseEntity<>(holidays,HttpStatus.OK);
     }
 
-    @DeleteMapping("/by-country/{countryCode}")
+    @DeleteMapping(value = "/by-country/{countryCode}")
     public ResponseEntity<String> deleteHolidaysByCountry(@PathVariable String countryCode) {
         federalHolidayService.deleteHolidaysByCountry(countryCode);
         return new ResponseEntity<>("All the holidays have been deleted",HttpStatus.OK);
     }
 
-    @GetMapping("/holiday/{id}")
-    public ResponseEntity<FederalHoliday> getHolidayById(@PathVariable Long id) {
-        FederalHoliday holidayById = federalHolidayService.getHolidayById(id);
-        return new ResponseEntity<>(holidayById,HttpStatus.OK);
+
+    @GetMapping(value = "/by-country-date")
+    public ResponseEntity<FederalHoliday> getHolidayByCountryAndDate(
+            @RequestParam String countryCode,
+            @RequestParam String holidayDate) {
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
+        LocalDate date = LocalDate.parse(holidayDate, formatter);
+
+        FederalHoliday holiday = federalHolidayService.getHolidayByCountryAndDate(countryCode, date);
+        return ResponseEntity.ok(holiday);
     }
 
     @PostMapping
-    public ResponseEntity<FederalHoliday> addHoliday(
+    public ResponseEntity<FederalHoliday> addHoliday(@Valid
             @RequestParam String countryCode,
             @RequestParam String holidayName,
             @RequestParam String holidayDate) {
@@ -59,26 +67,35 @@ public class FederalHolidayController {
         return new ResponseEntity<>(federalHoliday,HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping
     public ResponseEntity<FederalHoliday> updateHoliday(
-            @PathVariable Long id,
-            @RequestParam String holidayName,
-            @RequestParam String holidayDate) {
+            @RequestParam String countryCode,
+            @RequestParam String holidayDate,
+            @RequestParam String holidayName) {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
         LocalDate date = LocalDate.parse(holidayDate, formatter);
-        FederalHoliday federalHoliday = federalHolidayService.updateHoliday(id, holidayName, date);
+        FederalHoliday federalHoliday = federalHolidayService.updateHoliday(countryCode, holidayName, date);
         return new ResponseEntity<>(federalHoliday,HttpStatus.OK);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteHoliday(@PathVariable Long id) {
-        federalHolidayService.deleteHoliday(id);
+    @DeleteMapping(value = "/by-country-date")
+    public ResponseEntity<String> deleteHolidayByCountryCodeAndHolidayDate(
+                                                @RequestParam String countryCode,
+                                                @RequestParam String holidayDate) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
+        LocalDate date = LocalDate.parse(holidayDate, formatter);
+
+        federalHolidayService.deleteHolidayByCountryCodeAndHolidayDate(countryCode, date);
         return new ResponseEntity<>("Holiday deleted successfully",HttpStatus.OK);
     }
 
-    @PostMapping("/upload-csvs")
+    @PostMapping(value = "/upload-csvs", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> uploadMultipleCsvFiles(@RequestParam("files") List<MultipartFile> files) {
+        if (files.size() < 1 || files.size() > 3) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "You can only upload 1, 2, or 3 files."));
+        }
         return federalHolidayService.processMultipleCsvFiles(files);
     }
 

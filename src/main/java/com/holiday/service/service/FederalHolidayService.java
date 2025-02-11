@@ -3,6 +3,7 @@ package com.holiday.service.service;
 import com.holiday.entity.Country;
 import com.holiday.entity.FederalHoliday;
 import com.holiday.exception.DuplicateHolidayException;
+import com.holiday.exception.InvalidHolidayDateException;
 import com.holiday.repository.CountryRepository;
 import com.holiday.repository.FederalHolidayRepository;
 import com.holiday.service.Impl.FederalServiceImpl;
@@ -45,15 +46,22 @@ public class FederalHolidayService implements FederalServiceImpl {
         return federalHolidayRepository.findAll();
     }
 
-    public FederalHoliday getHolidayById(Long id) {
-        return federalHolidayRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Holiday not found"));
+    public FederalHoliday getHolidayByCountryAndDate(String countryCode, LocalDate holidayDate) {
+        FederalHoliday holiday = federalHolidayRepository
+                .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
+                .orElseThrow(() -> new IllegalArgumentException("Holiday not found for given country code and date"));
+        return holiday;
     }
 
     @Transactional
     public FederalHoliday addHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
         Country country = countryRepository.findById(countryCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid country code"));
+
+
+        if(federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)){
+            throw new DuplicateHolidayException("Holiday with the same name and date already exists for this country.");
+        }
 
         FederalHoliday holiday = new FederalHoliday();
         holiday.setCountry(country);
@@ -69,25 +77,44 @@ public class FederalHolidayService implements FederalServiceImpl {
         }
     }
 
+    private LocalDate parseDate(String dateStr) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy"); // Your original format
+            return LocalDate.parse(dateStr, formatter);
+        } catch (java.time.format.DateTimeParseException ex) {
+            String errorMessage = "Invalid date format. Please use dd-MMM-yyyy";
+            if(ex.getMessage().contains("Invalid value")){
+                errorMessage = "Invalid date value. Check the day, month, and year.";
+            }
+            throw new InvalidHolidayDateException(errorMessage);
+        }
+    }
+
+
 
     @Transactional
-    public FederalHoliday updateHoliday(Long id, String holidayName, LocalDate holidayDate) {
-        FederalHoliday existingHoliday = federalHolidayRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Holiday not found"));
-
+    public FederalHoliday updateHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
+        FederalHoliday existingHoliday = federalHolidayRepository
+                .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
+                .orElseThrow(() -> new IllegalArgumentException("Holiday not found for the given country code and date"));
+        if (existingHoliday.getHolidayName().equalsIgnoreCase(holidayName)) {
+            throw new IllegalArgumentException("No changes detected. Holiday details remain the same.");
+        }
         existingHoliday.setHolidayName(holidayName);
-        existingHoliday.setHolidayDate(holidayDate);
-        existingHoliday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));
-
         return federalHolidayRepository.save(existingHoliday);
     }
 
     @Transactional
-    public void deleteHoliday(Long id) {
-        if (!federalHolidayRepository.existsById(id)) {
-            throw new IllegalArgumentException("Holiday not found");
+    public void deleteHolidayByCountryCodeAndHolidayDate(String countryCode, LocalDate holidayDate) {
+        Country country = countryRepository.findByCountryCode(countryCode);
+        if (country == null) {
+            throw new IllegalArgumentException("Invalid country code");
         }
-        federalHolidayRepository.deleteById(id);
+
+        int deletedCount = federalHolidayRepository.deleteByCountryAndHolidayDate(country, holidayDate);
+        if (deletedCount == 0) {
+            throw new IllegalArgumentException("No holiday found for the given country and date");
+        }
     }
 
     public ResponseEntity<Map<String, Object>> processMultipleCsvFiles(List<MultipartFile> files) {

@@ -14,9 +14,9 @@ public interface FederalServiceImpl {
     Page<FederalHoliday> getHolidaysByCountry(String countryCode, Pageable pageable);
     void deleteHolidaysByCountry(String countryCode);
     List<FederalHoliday> getHolidays();
-    FederalHoliday getHolidayById(Long id);
     FederalHoliday addHoliday(String countryCode, String holidayName, LocalDate holidayDate);
-    FederalHoliday updateHoliday(Long id, String holidayName, LocalDate holidayDate);
-    void deleteHoliday(Long id);
+    FederalHoliday updateHoliday(String countryCode, String holidayName, LocalDate holidayDate);
+    void deleteHolidayByCountryCodeAndHolidayDate(String countryCode, LocalDate holidayDate);
     ResponseEntity<Map<String, Object>> processMultipleCsvFiles(List<MultipartFile> files);
+    FederalHoliday getHolidayByCountryAndDate(String countryCode, LocalDate holidayDate);
 }
