@@ -37,15 +37,15 @@ cd federal-holidays
    ```
 
 ## API Endpoints
-| Method | Endpoint | Description |
-|--------|---------|-------------|
-| `GET` | `/api/holidays?countryCode=US&year=2025` | Get holidays for a country and year |
-| `GET` | `/api/holidays/{id}` | Get details of a specific holiday by ID |
-| `POST` | `/api/holidays` | Add a new holiday |
-| `PUT` | `/api/holidays/{id}` | Update an existing holiday |
-| `DELETE` | `/api/holidays/{id}` | Delete a holiday |
-| `POST` | `/api/holidays/upload` | Upload a file containing holidays |
-| `GET` | `/api/holidays/all` | Get all holidays |
+| Method | Endpoint                                    | Description |
+|--------|---------------------------------------------|-------------|
+| `GET` | `/api/v1/holidays?countryCode=US&year=2025` | Get holidays for a country and year |
+| `GET` | `/api/v1/holidays/{id}`                     | Get details of a specific holiday by ID |
+| `POST` | `/api/v1/holidays`                          | Add a new holiday |
+| `PUT` | `/api/v1/holidays/{id}`                     | Update an existing holiday |
+| `DELETE` | `/api/v1/holidays/{id}`                     | Delete a holiday |
+| `POST` | `/api/v1/holidays/upload`                   | Upload a file containing holidays |
+| `GET` | `/api/v1/holidays/all`                      | Get all holidays |
 
 ## Testing
 Run tests using:
