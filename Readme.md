@@ -24,7 +24,7 @@ A RESTful API to manage Federal Holidays for the USA ,UK and Canada. This API al
 
 ### Clone the Repository
 ```sh
-git clone https://github.com/yourusername/federal-holidays-api.git
+git clone https://github.com/tusharishere/Federal-Holiday?tab=readme-ov-file
 cd federal-holidays
 ```
 
