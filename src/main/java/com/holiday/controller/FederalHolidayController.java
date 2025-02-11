@@ -67,7 +67,7 @@ public class FederalHolidayController {
         return new ResponseEntity<>(federalHoliday,HttpStatus.CREATED);
     }
 
-    @PutMapping
+    @PutMapping(value = "/update")
     public ResponseEntity<FederalHoliday> updateHoliday(
             @RequestParam String countryCode,
             @RequestParam String holidayDate,
