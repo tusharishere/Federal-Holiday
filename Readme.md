@@ -37,15 +37,17 @@ cd federal-holidays
    ```
 
 ## API Endpoints
-| Method | Endpoint                                    | Description |
-|--------|---------------------------------------------|-------------|
-| `GET` | `/api/v1/holidays?countryCode=US&year=2025` | Get holidays for a country and year |
-| `GET` | `/api/v1/holidays/{id}`                     | Get details of a specific holiday by ID |
-| `POST` | `/api/v1/holidays`                          | Add a new holiday |
-| `PUT` | `/api/v1/holidays/{id}`                     | Update an existing holiday |
-| `DELETE` | `/api/v1/holidays/{id}`                     | Delete a holiday |
-| `POST` | `/api/v1/holidays/upload`                   | Upload a file containing holidays |
-| `GET` | `/api/v1/holidays/all`                      | Get all holidays |
+| Method | Endpoint                                    | Description                                                              |
+|--------|---------------------------------------------|--------------------------------------------------------------------------|
+| `GET` | `/api/v1/holidays/{countryCode}`            | Get holidays for specific country using country code                     |
+| `GET` | `/api/v1/holidays/by-country-date`          | Get details of a specific holiday by using country code and holiday date |
+| `POST` | `/api/v1/holidays`                          | Add a new holiday                                                        |
+| `PUT` | `/api/v1/holidays/update`                   | Update an existing holiday                                               |
+| `DELETE` | `/api/v1/holidays/by-country-date`          | Delete a holiday using country code and holiday date                     |
+| `POST` | `/api/v1/holidays/upload-csvs`              | Upload a csv file containing holidays                                    |
+| `GET` | `/api/v1/holidays`                          | Get all holidays                                                         |
+| `DELETE` | `/api/v1/holidays/by-country/{countryCode}` | Delete a holidays of a country using country code       |
+
 
 ## Testing
 Run tests using:
