@@ -21,19 +21,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
-    @ExceptionHandler(InvalidHolidayDateException.class)
-    public ResponseEntity<Map<String, String>> handleInvalidHolidayDateException(InvalidHolidayDateException ex) {
-        logger.warn("Handling Invalid Holiday Date Exception: {}", ex.getMessage());
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Invalid date format");
-        response.put("details", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    @ExceptionHandler(NoHolidaysFoundException.class)
+    public ResponseEntity<String> handleNoHolidaysFoundException(NoHolidaysFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
-
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
-        logger.warn("Handling Illegal Argument Exception: {}", ex.getMessage());
+        logger.warn("Illegal Argument: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCountryCodeException.class)
+    public ResponseEntity<String> handleInvalidCountryCodeException(InvalidCountryCodeException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidHolidayDateException.class)
+    public ResponseEntity<String> handleInvalidHolidayDateException(InvalidHolidayDateException ex) {
+        logger.warn("Handling Invalid Holiday Date Exception: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 

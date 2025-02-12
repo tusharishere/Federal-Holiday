@@ -11,12 +11,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface FederalHolidayRepository extends JpaRepository<FederalHoliday,Long> {
 
-    Page<FederalHoliday> findByCountry_CountryCode(String countryCode, Pageable pageable);
+    List<FederalHoliday> findByCountry_CountryCode(String countryCode);
     Optional<FederalHoliday> findByCountry_CountryCodeAndHolidayDate(String countryCode, LocalDate holidayDate);
+    boolean existsByCountry_CountryCode(String countryCode);
 
     @Modifying
     @Query("DELETE FROM FederalHoliday f WHERE f.country.countryCode = :countryCode")
@@ -32,6 +34,4 @@ public interface FederalHolidayRepository extends JpaRepository<FederalHoliday,L
 
     @Transactional
     int deleteByCountryAndHolidayDate(Country country, LocalDate holidayDate);
-
-
 }
