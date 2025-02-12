@@ -2,6 +2,7 @@ package com.holiday.controller;
 
 import com.holiday.entity.FederalHoliday;
 import com.holiday.service.service.FederalHolidayService;
+import com.holiday.utils.DateUtilService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,11 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import java.util.Locale;
 import java.time.LocalDate;
 
-
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +22,7 @@ import java.util.Map;
 public class FederalHolidayController {
 
     private final FederalHolidayService federalHolidayService;
+    private final DateUtilService dateUtilService;
 
 
     @GetMapping(value = "/{countryCode}")
@@ -48,9 +47,7 @@ public class FederalHolidayController {
             @RequestParam String countryCode,
             @RequestParam String holidayDate) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
-        LocalDate date = LocalDate.parse(holidayDate, formatter);
-
+        LocalDate date = dateUtilService.parseDate(holidayDate);
         FederalHoliday holiday = federalHolidayService.getHolidayByCountryAndDate(countryCode, date);
         return ResponseEntity.ok(holiday);
     }
@@ -61,8 +58,7 @@ public class FederalHolidayController {
             @RequestParam String holidayName,
             @RequestParam String holidayDate) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
-        LocalDate date = LocalDate.parse(holidayDate, formatter);
+        LocalDate date = dateUtilService.parseDate(holidayDate);
         FederalHoliday federalHoliday = federalHolidayService.addHoliday(countryCode, holidayName, date);
         return new ResponseEntity<>(federalHoliday,HttpStatus.CREATED);
     }
@@ -73,8 +69,7 @@ public class FederalHolidayController {
             @RequestParam String holidayDate,
             @RequestParam String holidayName) {
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
-        LocalDate date = LocalDate.parse(holidayDate, formatter);
+        LocalDate date = dateUtilService.parseDate(holidayDate);
         FederalHoliday federalHoliday = federalHolidayService.updateHoliday(countryCode, holidayName, date);
         return new ResponseEntity<>(federalHoliday,HttpStatus.OK);
     }
@@ -83,19 +78,14 @@ public class FederalHolidayController {
     public ResponseEntity<String> deleteHolidayByCountryCodeAndHolidayDate(
                                                 @RequestParam String countryCode,
                                                 @RequestParam String holidayDate) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
-        LocalDate date = LocalDate.parse(holidayDate, formatter);
 
+        LocalDate date = dateUtilService.parseDate(holidayDate);
         federalHolidayService.deleteHolidayByCountryCodeAndHolidayDate(countryCode, date);
         return new ResponseEntity<>("Holiday deleted successfully",HttpStatus.OK);
     }
 
     @PostMapping(value = "/upload-csvs", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> uploadMultipleCsvFiles(@RequestParam("files") List<MultipartFile> files) {
-        if (files.size() < 1 || files.size() > 3) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "You can only upload 1, 2, or 3 files."));
-        }
         return federalHolidayService.processMultipleCsvFiles(files);
     }
 

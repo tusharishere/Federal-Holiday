@@ -2,12 +2,10 @@ package com.holiday.service.service;
 
 import com.holiday.entity.Country;
 import com.holiday.entity.FederalHoliday;
-import com.holiday.entity.FileUploadLog;
 import com.holiday.exception.DuplicateHolidayException;
 import com.holiday.exception.InvalidHolidayDateException;
 import com.holiday.repository.CountryRepository;
 import com.holiday.repository.FederalHolidayRepository;
-import com.holiday.repository.FileUploadLogRepository;
 import com.holiday.service.Impl.FederalServiceImpl;
 import com.holiday.utils.DateUtilService;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +20,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -36,15 +32,14 @@ public class FederalHolidayService implements FederalServiceImpl {
     private final FederalHolidayRepository federalHolidayRepository;
     private final CountryRepository countryRepository;
     private final DateUtilService dateUtilService;
-    private final FileUploadLogRepository fileUploadLogRepository;
 
 
     public Page<FederalHoliday> getHolidaysByCountry(String countryCode, Pageable pageable) {
-        return federalHolidayRepository.findByCountry_CountryCode(countryCode,pageable);
+        return federalHolidayRepository.findByCountry_CountryCode(countryCode, pageable);
     }
+
     @Transactional
     public void deleteHolidaysByCountry(String countryCode) {
-
         federalHolidayRepository.deleteByCountryCode(countryCode);
     }
 
@@ -64,8 +59,7 @@ public class FederalHolidayService implements FederalServiceImpl {
         Country country = countryRepository.findById(countryCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid country code"));
 
-
-        if(federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)){
+        if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)) {
             throw new DuplicateHolidayException("Holiday with the same name and date already exists for this country.");
         }
 
@@ -85,17 +79,16 @@ public class FederalHolidayService implements FederalServiceImpl {
 
     private LocalDate parseDate(String dateStr) {
         try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy"); // Your original format
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM-yyyy");
             return LocalDate.parse(dateStr, formatter);
         } catch (java.time.format.DateTimeParseException ex) {
             String errorMessage = "Invalid date format. Please use dd-MMM-yyyy";
-            if(ex.getMessage().contains("Invalid value")){
+            if (ex.getMessage().contains("Invalid value")) {
                 errorMessage = "Invalid date value. Check the day, month, and year.";
             }
             throw new InvalidHolidayDateException(errorMessage);
         }
     }
-
 
 
     @Transactional
@@ -128,38 +121,12 @@ public class FederalHolidayService implements FederalServiceImpl {
         List<Map<String, Object>> fileResults = new ArrayList<>();
 
         for (MultipartFile file : files) {
-            try {
-                String fileHash= computFileHash(file);
-                if (fileUploadLogRepository.existsByFileHash(fileHash)){
-                    fileResults.add(Map.of("file_name",file.getOriginalFilename(),"error","File already uploaded"));
-                    continue;
-                }
-                Map<String, Object> result = processSingleCsvFile(file);
-                if (result.containsKey("error")) {
-                    fileResults.add(Map.of("file_name", Objects.requireNonNull(file.getOriginalFilename()), "result", result));
-                    continue;
-                }
-                FileUploadLog log = new FileUploadLog();
-                log.setFileHash(fileHash);
-                log.setFileName(file.getOriginalFilename());
-                log.setUploadedAt(LocalDateTime.now());
-                fileUploadLogRepository.save(log);
-
-            }catch (Exception e) {
-                fileResults.add(Map.of("file_name", file.getOriginalFilename(), "error", e.getMessage()));
-            }
-
+            Map<String, Object> result = processSingleCsvFile(file);
+            fileResults.add(Map.of("file_name", Objects.requireNonNull(file.getOriginalFilename()), "result", result));
         }
 
         response.put("files_processed", fileResults);
         return ResponseEntity.ok(response);
-    }
-
-    private String computFileHash(MultipartFile file)throws IOException, NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        byte[] fileBytes = file.getBytes();
-        byte[] hashBytes = digest.digest(fileBytes);
-        return Base64.getEncoder().encodeToString(hashBytes);
     }
 
     private Map<String, Object> processSingleCsvFile(MultipartFile file) {
@@ -170,16 +137,19 @@ public class FederalHolidayService implements FederalServiceImpl {
             return result;
         }
 
-        List<FederalHoliday> holidayList = new ArrayList<>();
-        List<String> errorRows = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        List<FederalHoliday> addedRecords = new ArrayList<>();
+        List<String> duplicateRows = new ArrayList<>();
+        List<String> invalidRows = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            validateSingleCountryCode(br);
 
             String line;
             Map<String, Integer> columnIndexMap = new HashMap<>();
             boolean firstLine = true;
+            int rowIndex = 1;
+
+            List<FederalHoliday> holidaysFromCSV = new ArrayList<>();
 
             while ((line = br.readLine()) != null) {
                 String[] data = line.split(",");
@@ -188,34 +158,35 @@ public class FederalHolidayService implements FederalServiceImpl {
                     for (int i = 0; i < data.length; i++) {
                         columnIndexMap.put(data[i].trim().toLowerCase(), i);
                     }
-                    firstLine = false;
-                    continue;
-                }
-
-                try {
                     if (!columnIndexMap.containsKey("country_code") ||
                             !columnIndexMap.containsKey("holiday_name") ||
                             !columnIndexMap.containsKey("holiday_date")) {
                         throw new IllegalArgumentException("Missing required columns in CSV.");
                     }
+                    firstLine = false;
+                    continue;
+                }
+                rowIndex++;
 
+                try {
                     String countryCode = data[columnIndexMap.get("country_code")].trim();
                     String holidayName = data[columnIndexMap.get("holiday_name")].trim();
                     String holidayDateStr = data[columnIndexMap.get("holiday_date")].trim();
 
-                    if (countryCode.isEmpty() || holidayName.isEmpty() || holidayDateStr.isEmpty()) {
-                        throw new IllegalArgumentException("Empty values detected in required fields.");
+                    if (!countryCode.matches("00[1-3]")) {
+                        throw new IllegalArgumentException("Invalid Country code '" + countryCode + "' in row " + rowIndex + ".");
                     }
 
-                    LocalDate holidayDate = LocalDate.parse(holidayDateStr, formatter);
+                    LocalDate holidayDate;
+                    try {
+                        holidayDate = LocalDate.parse(holidayDateStr, formatter);
+                    } catch (DateTimeParseException e) {
+                        throw new IllegalArgumentException("Invalid date format in row " + rowIndex + ".");
+                    }
 
                     Country country = countryRepository.findByCountryCode(countryCode);
                     if (country == null) {
-                        throw new IllegalArgumentException("Invalid country code: " + countryCode);
-                    }
-
-                    if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)){
-                        throw new DuplicateHolidayException("Duplicate holiday for " + countryCode + " on " + holidayDate);
+                        throw new IllegalArgumentException("Country not found for code: " + countryCode + " in row " + rowIndex + ".");
                     }
 
                     FederalHoliday holiday = new FederalHoliday();
@@ -223,17 +194,26 @@ public class FederalHolidayService implements FederalServiceImpl {
                     holiday.setHolidayDate(holidayDate);
                     holiday.setHolidayName(holidayName);
                     holiday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));
+                    holidaysFromCSV.add(holiday);
 
-                    federalHolidayRepository.save(holiday);
-                    holidayList.add(holiday);
-
-                } catch (Exception e) {
-                    errorRows.add("Error processing row: " + line + " | Reason: " + e.getMessage());
+                } catch (IllegalArgumentException e) {
+                    invalidRows.add("Error in row " + rowIndex + ": " + line + " | Reason: " + e.getMessage());
                 }
             }
 
-            result.put("uploaded_count", holidayList.size());
-            result.put("failed_rows", errorRows);
+
+            for (FederalHoliday holiday : holidaysFromCSV) {
+                if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(holiday.getCountry(), holiday.getHolidayName(), holiday.getHolidayDate())) {
+                    duplicateRows.add(formatHolidayRow(holiday));
+                } else {
+                    federalHolidayRepository.save(holiday);
+                    addedRecords.add(holiday);
+                }
+            }
+
+            result.put("added_records_count", addedRecords.size());
+            result.put("duplicate_rows", duplicateRows);
+            result.put("invalid_rows", invalidRows);
 
         } catch (Exception e) {
             result.put("error", "Error processing CSV file: " + e.getMessage());
@@ -242,45 +222,13 @@ public class FederalHolidayService implements FederalServiceImpl {
         return result;
     }
 
-    private void validateSingleCountryCode(BufferedReader br) throws IOException {
-        Set<String> countryCodes = new HashSet<>();
-        String line;
-        boolean firstLine = true;
-        Map<String, Integer> columnIndexMap = new HashMap<>();
 
-
-        br.mark(10 * 1024); // Mark buffer limit (10KB)
-
-        while ((line = br.readLine()) != null) {
-            String[] data = line.split(",");
-
-            if (firstLine) {
-                // Identify column indexes dynamically
-                for (int i = 0; i < data.length; i++) {
-                    columnIndexMap.put(data[i].trim().toLowerCase(), i);
-                }
-
-                if (!columnIndexMap.containsKey("country_code")) {
-                    throw new IllegalArgumentException("CSV file is missing the required column: country_code");
-                }
-
-                firstLine = false;
-                continue;
-            }
-
-
-            String countryCode = data[columnIndexMap.get("country_code")].trim();
-            if (!countryCode.isEmpty()) {
-                countryCodes.add(countryCode);
-            }
-
-            if (countryCodes.size() > 1) {
-                throw new IllegalArgumentException("CSV file contains multiple country codes. Only one country is allowed per file.");
-            }
-        }
-
-
-        br.reset();
+    private String formatHolidayRow(FederalHoliday holiday) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        return String.join(",",
+                holiday.getCountry().getCountryCode(),
+                holiday.getHolidayName(),
+                holiday.getHolidayDate().format(formatter));
     }
 
 }
