@@ -22,19 +22,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidHolidayDateException.class)
-    public ResponseEntity<String> handleInvalidHolidayDateException(InvalidHolidayDateException ex) {
+    public ResponseEntity<Map<String, String>> handleInvalidHolidayDateException(InvalidHolidayDateException ex) {
         logger.warn("Handling Invalid Holiday Date Exception: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Invalid date format");
+        response.put("details", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage()));
-
-        return ResponseEntity.badRequest().body(errors); // Return a map of field: error message
-    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
@@ -45,6 +40,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneralException(Exception ex) {
         logger.error("Internal Server Error: ", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Please Put Valid date format - dd-MM-yyyy.");
     }
 }

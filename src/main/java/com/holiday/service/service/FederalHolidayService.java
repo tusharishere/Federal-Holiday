@@ -27,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -97,6 +96,8 @@ public class FederalHolidayService implements FederalServiceImpl {
         }
     }
 
+
+
     @Transactional
     public FederalHoliday updateHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
         FederalHoliday existingHoliday = federalHolidayRepository
@@ -164,14 +165,14 @@ public class FederalHolidayService implements FederalServiceImpl {
     private Map<String, Object> processSingleCsvFile(MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
 
-        List<FederalHoliday> validHolidays = new ArrayList<>();
-        List<Map<String, String>> failedRows = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-
         if (file.isEmpty()) {
             result.put("error", "CSV file is empty.");
             return result;
         }
+
+        List<FederalHoliday> holidayList = new ArrayList<>();
+        List<String> errorRows = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
             validateSingleCountryCode(br);
@@ -191,9 +192,6 @@ public class FederalHolidayService implements FederalServiceImpl {
                     continue;
                 }
 
-                Map<String, String> failedRow = new HashMap<>();
-                failedRow.put("row", line);
-
                 try {
                     if (!columnIndexMap.containsKey("country_code") ||
                             !columnIndexMap.containsKey("holiday_name") ||
@@ -209,21 +207,14 @@ public class FederalHolidayService implements FederalServiceImpl {
                         throw new IllegalArgumentException("Empty values detected in required fields.");
                     }
 
-                    LocalDate holidayDate;
-
-                    try {
-                        holidayDate = LocalDate.parse(holidayDateStr, formatter);
-                    } catch (DateTimeParseException e) {
-                        throw new IllegalArgumentException("Invalid date format for holiday date: " + holidayDateStr);
-                    }
-
+                    LocalDate holidayDate = LocalDate.parse(holidayDateStr, formatter);
 
                     Country country = countryRepository.findByCountryCode(countryCode);
                     if (country == null) {
                         throw new IllegalArgumentException("Invalid country code: " + countryCode);
                     }
 
-                    if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)) {
+                    if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)){
                         throw new DuplicateHolidayException("Duplicate holiday for " + countryCode + " on " + holidayDate);
                     }
 
@@ -233,20 +224,16 @@ public class FederalHolidayService implements FederalServiceImpl {
                     holiday.setHolidayName(holidayName);
                     holiday.setDayOfWeek(dateUtilService.calculateDayOfWeek(holidayDate));
 
-                    validHolidays.add(holiday);
+                    federalHolidayRepository.save(holiday);
+                    holidayList.add(holiday);
 
                 } catch (Exception e) {
-                    failedRow.put("error", e.getMessage());
-                    failedRows.add(failedRow);
+                    errorRows.add("Error processing row: " + line + " | Reason: " + e.getMessage());
                 }
             }
 
-            if (!validHolidays.isEmpty()) {
-                federalHolidayRepository.saveAll(validHolidays);
-            }
-
-            result.put("uploaded_count", validHolidays.size());
-            result.put("failed_rows", failedRows);
+            result.put("uploaded_count", holidayList.size());
+            result.put("failed_rows", errorRows);
 
         } catch (Exception e) {
             result.put("error", "Error processing CSV file: " + e.getMessage());
@@ -262,13 +249,13 @@ public class FederalHolidayService implements FederalServiceImpl {
         Map<String, Integer> columnIndexMap = new HashMap<>();
 
 
-        br.mark(10 * 1024);
+        br.mark(10 * 1024); // Mark buffer limit (10KB)
 
         while ((line = br.readLine()) != null) {
             String[] data = line.split(",");
 
             if (firstLine) {
-
+                // Identify column indexes dynamically
                 for (int i = 0; i < data.length; i++) {
                     columnIndexMap.put(data[i].trim().toLowerCase(), i);
                 }
