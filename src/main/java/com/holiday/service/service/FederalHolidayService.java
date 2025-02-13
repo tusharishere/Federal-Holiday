@@ -158,7 +158,7 @@ public class FederalHolidayService implements FederalServiceImpl {
         return ResponseEntity.ok(response);
     }
 
-    private Map<String, Object> processSingleCsvFile(MultipartFile file) {
+    public Map<String, Object> processSingleCsvFile(MultipartFile file) {
         Map<String, Object> result = new HashMap<>();
 
         if (file.isEmpty()) {
