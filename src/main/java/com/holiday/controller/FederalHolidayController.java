@@ -103,7 +103,8 @@ public class FederalHolidayController {
     }
     @PostMapping(value = "/upload-csvs", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> uploadMultipleCsvFiles(@RequestParam("files") List<MultipartFile> files) {
-        return federalHolidayService.processMultipleCsvFiles(files);
+        Map<String, Object> result = federalHolidayService.processMultipleCsvFiles(files);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
 }

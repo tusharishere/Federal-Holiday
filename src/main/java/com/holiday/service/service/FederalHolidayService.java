@@ -12,7 +12,6 @@ import com.holiday.repository.FederalHolidayRepository;
 import com.holiday.service.Impl.FederalServiceImpl;
 import com.holiday.utils.DateUtilService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -145,7 +144,7 @@ public class FederalHolidayService implements FederalServiceImpl {
         }
     }
 
-    public ResponseEntity<Map<String, Object>> processMultipleCsvFiles(List<MultipartFile> files) {
+    public Map<String, Object> processMultipleCsvFiles(List<MultipartFile> files) {
         Map<String, Object> response = new HashMap<>();
         List<Map<String, Object>> fileResults = new ArrayList<>();
 
@@ -155,7 +154,7 @@ public class FederalHolidayService implements FederalServiceImpl {
         }
 
         response.put("files_processed", fileResults);
-        return ResponseEntity.ok(response);
+        return response;
     }
 
     public Map<String, Object> processSingleCsvFile(MultipartFile file) {
