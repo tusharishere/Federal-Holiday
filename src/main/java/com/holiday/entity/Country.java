@@ -9,11 +9,8 @@ import lombok.Setter;
 @Entity
 @Table(name = "country")
 public class Country {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Long id;
 
+    @Id
     @Column(name = "country_code", length = 3, nullable = false, unique = true)
     private String countryCode;
 

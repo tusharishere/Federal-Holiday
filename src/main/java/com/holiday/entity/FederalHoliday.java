@@ -18,7 +18,7 @@ public class FederalHoliday {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "country_code", referencedColumnName = "country_code", nullable = false)
     private Country country;
 
