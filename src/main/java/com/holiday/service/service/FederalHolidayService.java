@@ -36,10 +36,7 @@ public class FederalHolidayService implements FederalServiceImpl {
     @Override
     public HolidayResponseDto getHolidaysByCountry(String countryCode) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
-
+        Country country = validateCountryCode(countryCode);
         List<FederalHoliday> byCountryCountryCode = federalHolidayRepository.findByCountry_CountryCode(countryCode);
 
         if (byCountryCountryCode == null || byCountryCountryCode.isEmpty()) {
@@ -52,10 +49,7 @@ public class FederalHolidayService implements FederalServiceImpl {
     @Transactional
     public void deleteHolidaysByCountry(String countryCode) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
-
+        Country country = validateCountryCode(countryCode);
         if (!federalHolidayRepository.existsByCountry_CountryCode(countryCode)) {
             throw new NoHolidaysFoundException("No holidays found for the country code: " + countryCode);
         }
@@ -69,10 +63,7 @@ public class FederalHolidayService implements FederalServiceImpl {
 
     public FederalHoliday getHolidayByCountryAndDate(String countryCode, LocalDate holidayDate) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
-
+        Country country = validateCountryCode(countryCode);
         FederalHoliday holiday = federalHolidayRepository
                 .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
                 .orElseThrow(() -> new NoHolidaysFoundException("Holiday not found for given country code and date"));
@@ -82,13 +73,7 @@ public class FederalHolidayService implements FederalServiceImpl {
     @Transactional
     public FederalHoliday addHoliday(String countryCode, String holidayName, String holidayDateStr) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
-
-        Country country = countryRepository.findById(countryCode)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid country code"));
-
+        Country country = validateCountryCode(countryCode);
         LocalDate holidayDate = parseDate(holidayDateStr);
 
         if (federalHolidayRepository.existsByCountryAndHolidayNameAndHolidayDateIgnoreCase(country, holidayName, holidayDate)) {
@@ -104,28 +89,10 @@ public class FederalHolidayService implements FederalServiceImpl {
         return federalHolidayRepository.save(holiday);
     }
 
-    private LocalDate parseDate(String dateStr) {
-        try {
-            return dateUtilService.parseDate(dateStr);
-        } catch (InvalidHolidayDateException ex) {
-            throw ex;
-        } catch (DateTimeParseException ex) {
-            String errorMessage = "Invalid date format. Please use dd-MMM-yyyy";
-            if (ex.getMessage().contains("Invalid value")) {
-                errorMessage = "Invalid date value. Check the day, month, and year.";
-            }
-            throw new InvalidHolidayDateException(errorMessage, ex);
-        }
-    }
-
-
     @Transactional
     public FederalHoliday updateHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
-
+        Country country = validateCountryCode(countryCode);
         FederalHoliday existingHoliday = federalHolidayRepository
                 .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
                 .orElseThrow(() -> new IllegalArgumentException("Holiday not found for the given country code and date"));
@@ -141,13 +108,10 @@ public class FederalHolidayService implements FederalServiceImpl {
     @Transactional
     public void deleteHolidayByCountryCodeAndHolidayDate(String countryCode, LocalDate holidayDate) {
 
-        if (!countryRepository.existsByCountryCode(countryCode)) {
-            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
-        }
+        Country country = validateCountryCode(countryCode);
+        Country byCountryCode = countryRepository.findByCountryCode(countryCode);
 
-        Country country = countryRepository.findByCountryCode(countryCode);
-
-        int deletedCount = federalHolidayRepository.deleteByCountryAndHolidayDate(country, holidayDate);
+        int deletedCount = federalHolidayRepository.deleteByCountryAndHolidayDate(byCountryCode, holidayDate);
         if (deletedCount == 0) {
             throw new NoHolidaysFoundException("No holiday found for the given country and date");
         }
@@ -266,6 +230,27 @@ public class FederalHolidayService implements FederalServiceImpl {
                 holiday.getCountry().getCountryCode(),
                 holiday.getHolidayName(),
                 holiday.getHolidayDate().format(formatter));
+    }
+
+    private Country validateCountryCode(String countryCode) {
+        if (!countryRepository.existsByCountryCode(countryCode)) {
+            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
+        }
+        return countryRepository.findByCountryCode(countryCode);
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        try {
+            return dateUtilService.parseDate(dateStr);
+        } catch (InvalidHolidayDateException ex) {
+            throw ex;
+        } catch (DateTimeParseException ex) {
+            String errorMessage = "Invalid date format. Please use dd-MMM-yyyy";
+            if (ex.getMessage().contains("Invalid value")) {
+                errorMessage = "Invalid date value. Check the day, month, and year.";
+            }
+            throw new InvalidHolidayDateException(errorMessage, ex);
+        }
     }
 
 }

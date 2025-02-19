@@ -50,12 +50,7 @@ public class FederalHolidayController {
             @RequestParam String countryCode,
             @RequestParam String holidayDate) {
 
-        LocalDate localDate;
-        try {
-            localDate = dateUtilService.parseDate(holidayDate);
-        } catch (DateTimeParseException ex) {
-            throw new InvalidHolidayDateException("Invalid holiday date: " + holidayDate, ex);
-        }
+        LocalDate localDate = dateUtilService.validateAndParseDate(holidayDate);
         FederalHoliday holiday = federalHolidayService.getHolidayByCountryAndDate(countryCode, localDate);
         return ResponseEntity.ok(holiday);
     }
@@ -76,13 +71,7 @@ public class FederalHolidayController {
             @RequestParam String holidayDate,
             @RequestParam String holidayName) {
 
-        LocalDate localDate;
-
-        try {
-            localDate = dateUtilService.parseDate(holidayDate);
-        } catch (DateTimeParseException ex) {
-            throw new InvalidHolidayDateException("Invalid holiday date: " + holidayDate, ex);
-        }
+        LocalDate localDate = dateUtilService.validateAndParseDate(holidayDate);
         FederalHoliday federalHoliday = federalHolidayService.updateHoliday(countryCode, holidayName, localDate);
         return new ResponseEntity<>(federalHoliday, HttpStatus.OK);
     }
@@ -91,16 +80,12 @@ public class FederalHolidayController {
     public ResponseEntity<String> deleteHolidayByCountryCodeAndHolidayDate(
                                                 @RequestParam String countryCode,
                                                 @RequestParam String holidayDate) {
-        LocalDate localDate;
-        try {
-            localDate = dateUtilService.parseDate(holidayDate);
-        } catch (DateTimeParseException ex) {
-            throw new InvalidHolidayDateException("Invalid holiday date: " + holidayDate, ex);
-        }
 
+        LocalDate localDate = dateUtilService.validateAndParseDate(holidayDate);
         federalHolidayService.deleteHolidayByCountryCodeAndHolidayDate(countryCode, localDate);
         return new ResponseEntity<>("Holiday deleted successfully",HttpStatus.OK);
     }
+    
     @PostMapping(value = "/upload-csvs", consumes = "multipart/form-data")
     public ResponseEntity<Map<String, Object>> uploadMultipleCsvFiles(@RequestParam("files") List<MultipartFile> files) {
         Map<String, Object> result = federalHolidayService.processMultipleCsvFiles(files);

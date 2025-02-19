@@ -26,5 +26,12 @@ public class DateUtilService {
         }
         return LocalDate.parse(holidayDate, FORMATTER);
     }
+    public LocalDate validateAndParseDate(String holidayDate) {
+        try {
+            return parseDate(holidayDate); 
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Invalid holiday date: " + holidayDate, ex);
+        }
+    }
 
 }
