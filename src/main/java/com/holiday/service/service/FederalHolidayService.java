@@ -75,12 +75,17 @@ public class FederalHolidayService implements FederalServiceImpl {
 
         FederalHoliday holiday = federalHolidayRepository
                 .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
-                .orElseThrow(() -> new IllegalArgumentException("Holiday not found for given country code and date"));
+                .orElseThrow(() -> new NoHolidaysFoundException("Holiday not found for given country code and date"));
         return holiday;
     }
 
     @Transactional
     public FederalHoliday addHoliday(String countryCode, String holidayName, String holidayDateStr) {
+
+        if (!countryRepository.existsByCountryCode(countryCode)) {
+            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
+        }
+
         Country country = countryRepository.findById(countryCode)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid country code"));
 
@@ -117,6 +122,10 @@ public class FederalHolidayService implements FederalServiceImpl {
     @Transactional
     public FederalHoliday updateHoliday(String countryCode, String holidayName, LocalDate holidayDate) {
 
+        if (!countryRepository.existsByCountryCode(countryCode)) {
+            throw new InvalidCountryCodeException("Invalid country code: " + countryCode);
+        }
+
         FederalHoliday existingHoliday = federalHolidayRepository
                 .findByCountry_CountryCodeAndHolidayDate(countryCode, holidayDate)
                 .orElseThrow(() -> new IllegalArgumentException("Holiday not found for the given country code and date"));
@@ -140,7 +149,7 @@ public class FederalHolidayService implements FederalServiceImpl {
 
         int deletedCount = federalHolidayRepository.deleteByCountryAndHolidayDate(country, holidayDate);
         if (deletedCount == 0) {
-            throw new IllegalArgumentException("No holiday found for the given country and date");
+            throw new NoHolidaysFoundException("No holiday found for the given country and date");
         }
     }
 
